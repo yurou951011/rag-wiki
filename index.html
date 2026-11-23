@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RAG 是什麼？教學簡報</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--ink:#1f2430;--mute:#5d6577;--acc:#2b6cb0;--acc2:#d9822b;--line:#d9dce3;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171d;--card:#1d222b;--ink:#eceff4;--mute:#a3acbd;--acc:#6aa9ec;--acc2:#f0a55a;--line:#343b49}}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+.deck{height:100%;display:flex;flex-direction:column}
+.stage{flex:1;position:relative;overflow:hidden}
+.slide{position:absolute;inset:0;padding:5vh 6vw 7vh;display:none;flex-direction:column;gap:2vh;overflow-y:auto}
+.slide.on{display:flex}
+h1{font-size:clamp(28px,5.2vw,52px);margin:.2em 0}
+h2{font-size:clamp(22px,3.4vw,34px);margin:0;color:var(--acc)}
+p,li{font-size:clamp(16px,2.1vw,22px);line-height:1.6}
+ul{margin:0;padding-left:1.2em}
+.mute{color:var(--mute)}
+.row{display:flex;gap:14px;flex-wrap:wrap}
+.box{flex:1 1 150px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.box b{display:block;color:var(--acc);margin-bottom:4px}
+.tag{display:inline-block;font-size:13px;padding:2px 8px;border-radius:99px;background:var(--acc2);color:#fff}
+.arrow{align-self:center;color:var(--mute);font-size:22px}
+.bar{height:26px;border-radius:6px;background:var(--acc);color:#fff;font-size:14px;line-height:26px;padding-left:8px;white-space:nowrap}
+.bars{display:grid;gap:8px}
+.src{margin-top:auto;font-size:13px;color:var(--mute);border-top:1px dashed var(--line);padding-top:6px}
+.nav{display:flex;align-items:center;gap:10px;padding:8px 14px;border-top:1px solid var(--line);background:var(--card)}
+.nav button{font:inherit;padding:6px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+.nav span{margin-left:auto;color:var(--mute);font-size:14px}
+</style>
+</head>
+<body>
+<div class="deck">
+<div class="stage">
+
+<section class="slide on" data-wiki="concepts/rag-overview">
+  <span class="tag">教學簡報・約 7 分鐘</span>
+  <h1>RAG 是什麼？<br>讓 AI 先查資料，再回答</h1>
+  <p>給沒聽過 RAG 的你：看完能說出它的定義、流程，以及什麼時候該用。</p>
+  <ul>
+    <li>為什麼 LLM 需要它？</li>
+    <li>一次 RAG 怎麼跑？</li>
+    <li>怎麼讓它更準、怎麼評估？</li>
+  </ul>
+  <div class="src">來源：本簡報只取材自自建的 RAG LLM Wiki → concepts/rag-overview（S1 S2 S3 S5）</div>
+</section>
+
+<section class="slide" data-wiki="concepts/rag-overview">
+  <h2>為什麼需要 RAG？</h2>
+  <div class="row">
+    <div class="box"><b>知識有截止日</b>訓練資料是靜態的，新資訊它不知道。</div>
+    <div class="box"><b>沒答案會亂編</b>不知道時，可能給出錯誤資訊（幻覺）。</div>
+    <div class="box"><b>難以追溯</b>答案從哪來，看不出來。</div>
+  </div>
+  <p><b>RAG 的解法：</b>回答前先從外部知識庫取回相關內容，連同問題一起交給 LLM。</p>
+  <p class="mute">類比：RAG 像「開書考試」——先翻到對的那一頁再作答。（編者推論）</p>
+  <div class="src">來源：Wiki → concepts/rag-overview（S1 S2 S5）</div>
+</section>
+
+<section class="slide" data-wiki="concepts/rag-pipeline concepts/embeddings-vector-db">
+  <h2>一次 RAG 怎麼跑？</h2>
+  <p class="mute">離線只做一次：</p>
+  <div class="row"><div class="box"><b>① 準備資料</b>清理、切成 chunk</div><span class="arrow">→</span><div class="box"><b>② 向量化入庫</b>embedding 存進向量資料庫</div></div>
+  <p class="mute">每次提問都會重複：</p>
+  <div class="row"><div class="box"><b>③ 檢索</b>問題轉向量，找相似內容</div><span class="arrow">→</span><div class="box"><b>④ 增強</b>把內容附加到提示</div><span class="arrow">→</span><div class="box"><b>⑤ 生成</b>LLM 依據內容回答</div></div>
+  <p>Embedding＝文字的數值表示，用來捕捉語意；所以能比「意思」，不只比關鍵字。</p>
+  <div class="src">來源：Wiki → concepts/rag-pipeline、concepts/embeddings-vector-db（S2 S3 S5）</div>
+</section>
+
+<section class="slide" data-wiki="concepts/chunking-and-contextual-retrieval">
+  <h2>檢索為什麼會失敗？怎麼變準？</h2>
+  <p>切塊後，單獨一個 chunk 常缺少上下文（例如沒寫是哪家公司、哪個期間），就容易取錯。</p>
+  <p><b>Contextual Retrieval：</b>先替每個 chunk 補上 50–100 tokens 的簡短說明，再做 embedding。</p>
+  <div class="bars">
+    <div class="bar" style="width:100%">基準：檢索失敗率 5.7%</div>
+    <div class="bar" style="width:65%">Contextual Embeddings：3.7%</div>
+    <div class="bar" style="width:51%">再加 Contextual BM25：2.9%</div>
+  </div>
+  <p class="mute">再加 reranking，失敗率共降低 67%。（top-20 chunk，Anthropic 的測試結果）</p>
+  <div class="src">來源：Wiki → concepts/chunking-and-contextual-retrieval（S3）</div>
+</section>
+
+<section class="slide" data-wiki="concepts/rag-paradigms">
+  <h2>RAG 的三個世代</h2>
+  <div class="row">
+    <div class="box"><b>Naive RAG</b>索引 → 檢索 → 生成，也稱 Retrieve-Read。</div>
+    <div class="box"><b>Advanced RAG</b>更細的資料處理、多次檢索，加入查詢改寫、重排序等模組。</div>
+    <div class="box"><b>Modular RAG</b>模組可替換、可重組；能依情境判斷這題需不需要檢索。</div>
+  </div>
+  <p>演進的原因：Advanced 與 Modular 是為了解決 Naive RAG 的特定缺點。</p>
+  <div class="src">來源：Wiki → concepts/rag-paradigms（S5）</div>
+</section>
+
+<section class="slide" data-wiki="concepts/rag-evaluation concepts/rag-vs-alternatives concepts/limits-and-risks">
+  <h2>怎麼評估？什麼時候該用？</h2>
+  <div class="row">
+    <div class="box"><b>忠實度</b>答案有沒有根據取回的內容</div>
+    <div class="box"><b>答案相關性</b>有沒有回答到問題</div>
+    <div class="box"><b>脈絡相關性</b>取回的內容是否聚焦</div>
+  </div>
+  <ul>
+    <li>知識庫很小（小於 200,000 tokens，約 500 頁）時，可直接整份放進提示，不一定要 RAG。</li>
+    <li>知識庫大、資料常更新、需要權限控管時，RAG 更能發揮價值。</li>
+    <li>限制：檢索不可能百分之百準，資料也要持續更新。</li>
+  </ul>
+  <div class="src">來源：Wiki → concepts/rag-evaluation、rag-vs-alternatives、limits-and-risks（S2 S3 S4）</div>
+</section>
+
+<section class="slide" data-wiki="concepts/rag-overview concepts/rag-pipeline">
+  <h2>小結與自我檢查</h2>
+  <p><b>一句話：</b>RAG＝先查資料、再回答。</p>
+  <ol>
+    <li>RAG 解決了 LLM 的哪三個痛點？</li>
+    <li>哪個階段只做一次、哪些階段每次都要跑？</li>
+    <li>你的知識庫很小時，還需要 RAG 嗎？</li>
+  </ol>
+  <p class="mute">參考來源：Lewis et al., 2020（原始論文）・AWS 說明文件・Anthropic Contextual Retrieval・RAGAS 評估框架・Gao et al. RAG Survey</p>
+  <div class="src">來源：Wiki → concepts/rag-overview、concepts/rag-pipeline（S1 S2 S5）</div>
+</section>
+
+</div>
+<div class="nav"><button id="p">← 上一頁</button><button id="n">下一頁 →</button><span id="c"></span></div>
+</div>
+<script>
+(function(){
+  var s=[].slice.call(document.querySelectorAll('.slide')),i=0,c=document.getElementById('c');
+  function go(k){i=Math.max(0,Math.min(s.length-1,k));s.forEach(function(e,j){e.classList.toggle('on',j===i)});c.textContent=(i+1)+' / '+s.length}
+  document.getElementById('p').onclick=function(){go(i-1)};
+  document.getElementById('n').onclick=function(){go(i+1)};
+  document.addEventListener('keydown',function(e){if(e.key==='ArrowRight'||e.key===' ')go(i+1);if(e.key==='ArrowLeft')go(i-1)});
+  go(0);
+})();
+</script>
+</body>
+</html>
